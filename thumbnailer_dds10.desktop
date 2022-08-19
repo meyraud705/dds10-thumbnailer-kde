@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Service
+Name=Direct Draw Surface (DDS) DX10 (dds10-thumbnailer-kde)
+X-KDE-ServiceTypes=ThumbCreator
+MimeType=image/x-dds;
+CacheThumbnail=true
+X-KDE-Library=dds10thumbnail
+ThumbnailerVersion=1
