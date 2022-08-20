@@ -1,10 +1,10 @@
 # dds10-thumbnailer-kde
 
-dds10-thumbnailer-kde is a plugin for KDE that creates thumbnail for Direct 
+dds10-thumbnailer-kde is a plugin for KDE 5 that creates thumbnail for Direct 
 Draw Surface (DDS) images. It supports DX10 version of DDS with BC1/DXT1, 
 BC2/DXT3, BC3/DXT5 BC4/ATI1, BC5/ATI2 and BC7 encodings.
 
-## Build
+## Build and install
 
 ```
 mkdir build
@@ -15,4 +15,4 @@ sudo cmake --install .
 kbuildsycoca5
 ```
 
-
+You can then restart Dolphin and enable the plugin in `Configure Dolphin`>`General`>`Previews`.
