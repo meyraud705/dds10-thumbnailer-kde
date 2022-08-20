@@ -96,7 +96,7 @@ constexpr struct {
     PFN_CompressedSize CompressedSize;
     PFN_Decode Decode;
 } bc_table[8] = {
-    /*     */ {0                    , 0              , NULL           , NULL     },
+    /*     */ {0                    , 0              , nullptr        , nullptr  },
     /* BC1 */ {BCDEC_BC1_BLOCK_SIZE , 4              , CompressedSize1, bcdec_bc1},
     /* BC2 */ {BCDEC_BC2_BLOCK_SIZE , 4              , CompressedSize2, bcdec_bc2},
     /* BC3 */ {BCDEC_BC3_BLOCK_SIZE , 4              , CompressedSize3, bcdec_bc3},
@@ -116,7 +116,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
     
     // verify the type of file
     unsigned int file_code = 0;
-    if (file_dds.read((char*)&file_code, 4) != 4) {
+    if (file_dds.read(reinterpret_cast<char*>(&file_code), 4) != 4) {
         qDebug() << "[DDS thumbnailer]" << path << ": missing file type";
         return false;
     }
@@ -127,7 +127,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
     
     // read DDS header
     DirectX::DDS_HEADER header;
-    if (file_dds.read((char*)&header, sizeof(header)) != sizeof(header)) {
+    if (file_dds.read(reinterpret_cast<char*>(&header), sizeof(header)) != sizeof(header)) {
         qDebug() << "[DDS thumbnailer]" << path << ": missing header";
         return false;
     }
@@ -155,7 +155,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
     case FOURCC_ATI2:
         bc_codec = 5; break;
     case FOURCC_DX10: // DX10 extended header
-        if (file_dds.read((char*)&header10, sizeof(header10)) != sizeof(header10)) {
+        if (file_dds.read(reinterpret_cast<char*>(&header10), sizeof(header10)) != sizeof(header10)) {
             qDebug() << "[DDS thumbnailer]" << path << ": missing DX10 header";
             return false;
         }
