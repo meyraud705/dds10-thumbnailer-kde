@@ -20,6 +20,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <new>
 #include <memory>
 #include <cstring>
@@ -75,14 +76,11 @@ extern "C" {
 #define FOURCC_BC5S FOURCC('B', 'C', '5', 'S')
 #define FOURCC_DX10 FOURCC('D', 'X', '1', '0')
 
+#define max(a, b) ((a<b)?b:a)
+
 typedef std::size_t (*PFN_CompressedSize)(std::size_t w, std::size_t h);
-static std::size_t CompressedSize1(std::size_t w, std::size_t h) {return BCDEC_BC1_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize2(std::size_t w, std::size_t h) {return BCDEC_BC2_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize3(std::size_t w, std::size_t h) {return BCDEC_BC3_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize4(std::size_t w, std::size_t h) {return BCDEC_BC4_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize5(std::size_t w, std::size_t h) {return BCDEC_BC5_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize6(std::size_t w, std::size_t h) {return BCDEC_BC6H_COMPRESSED_SIZE(w, h);}
-static std::size_t CompressedSize7(std::size_t w, std::size_t h) {return BCDEC_BC7_COMPRESSED_SIZE(w, h);}
+static std::size_t CompressedSize8(std::size_t w, std::size_t h)  {return max(1, (w + 3) / 4) * max(1, (h + 3) / 4) * 8;}
+static std::size_t CompressedSize16(std::size_t w, std::size_t h) {return max(1, (w + 3) / 4) * max(1, (h + 3) / 4) * 16;}
 
 typedef void (*PFN_Decode)(const void* compressedBlock, void* decompressedBlock, int destinationPitch);
 static void DecodeBC6(const void* compressedBlock, void* decompressedBlock, int destinationPitch)
@@ -96,14 +94,14 @@ constexpr struct {
     PFN_CompressedSize CompressedSize;
     PFN_Decode Decode;
 } bc_table[8] = {
-    /*     */ {0                    , 0              , nullptr        , nullptr  },
-    /* BC1 */ {BCDEC_BC1_BLOCK_SIZE , 4              , CompressedSize1, bcdec_bc1},
-    /* BC2 */ {BCDEC_BC2_BLOCK_SIZE , 4              , CompressedSize2, bcdec_bc2},
-    /* BC3 */ {BCDEC_BC3_BLOCK_SIZE , 4              , CompressedSize3, bcdec_bc3},
-    /* BC4 */ {BCDEC_BC4_BLOCK_SIZE , 1              , CompressedSize4, bcdec_bc4},
-    /* BC5 */ {BCDEC_BC5_BLOCK_SIZE , 2              , CompressedSize5, bcdec_bc5},
-    /* BC6 */ {BCDEC_BC6H_BLOCK_SIZE, 3*sizeof(float), CompressedSize6, DecodeBC6},
-    /* BC7 */ {BCDEC_BC7_BLOCK_SIZE , 4              , CompressedSize7, bcdec_bc7},
+    /*     */ {0                    , 0              , nullptr         , nullptr  },
+    /* BC1 */ {BCDEC_BC1_BLOCK_SIZE , 4              , CompressedSize8 , bcdec_bc1},
+    /* BC2 */ {BCDEC_BC2_BLOCK_SIZE , 4              , CompressedSize16, bcdec_bc2},
+    /* BC3 */ {BCDEC_BC3_BLOCK_SIZE , 4              , CompressedSize16, bcdec_bc3},
+    /* BC4 */ {BCDEC_BC4_BLOCK_SIZE , 1              , CompressedSize8 , bcdec_bc4},
+    /* BC5 */ {BCDEC_BC5_BLOCK_SIZE , 2              , CompressedSize16, bcdec_bc5},
+    /* BC6 */ {BCDEC_BC6H_BLOCK_SIZE, 3*sizeof(float), CompressedSize16, DecodeBC6},
+    /* BC7 */ {BCDEC_BC7_BLOCK_SIZE , 4              , CompressedSize16, bcdec_bc7},
 };
 
 bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
