@@ -6,6 +6,13 @@ BC2/DXT3, BC3/DXT5 BC4/ATI1, BC5/ATI2 and BC7 encodings.
 
 ## Build and install
 
+Install dependencies:
+
+ - Ubuntu: `sudo apt install cmake extra-cmake-modules build-essential qtbase5-dev libkf5kio-dev`
+ - openSUSE: `sudo zypper install cmake extra-cmake-modules libqt5core-devel libqt5gui-devel kio-devel`
+
+Build:
+
 ```
 mkdir build
 cd build
