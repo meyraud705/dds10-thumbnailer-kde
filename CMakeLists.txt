@@ -1,5 +1,5 @@
-project(dds10-thumbnailer-kde)
 cmake_minimum_required(VERSION 3.16.0)
+project(dds10-thumbnailer-kde)
 
 set(QT_MIN_VERSION "5.15.2")
 set(KF5_MIN_VERSION "5.78.0")
