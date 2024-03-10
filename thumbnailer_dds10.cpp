@@ -29,7 +29,8 @@
 #include <QtGui/QImage>
 #include <QtCore/QDebug>
 
-#include <kio/thumbcreator.h>
+#include <KPluginFactory>
+#include <kio/thumbnailcreator.h>
 
 // https://github.com/iOrange/bcdec
 #define BCDEC_STATIC
@@ -41,21 +42,21 @@
 // https://github.com/microsoft/DirectXTK/blob/main/Src/DDS.h
 #include "DDS.h"
 
-class DDSCreator : public ThumbCreator
+class DDSCreator : public KIO::ThumbnailCreator
 {
+        Q_OBJECT
     public:
-        DDSCreator() = default;
+        DDSCreator(QObject *parent, const QVariantList &args);
         virtual ~DDSCreator() = default;
         
-        bool create(const QString &path, int width, int height, QImage &img) override;
-        Flags flags() const override;
+        KIO::ThumbnailResult create(const KIO::ThumbnailRequest &request) override;
 };
 
-extern "C" {
-    Q_DECL_EXPORT ThumbCreator *new_creator()
-    {
-        return new DDSCreator();
-    }
+K_PLUGIN_CLASS_WITH_JSON(DDSCreator, "thumbnailer_dds10.json")
+
+DDSCreator::DDSCreator(QObject *parent, const QVariantList &args)
+    : KIO::ThumbnailCreator(parent, args)
+{
 }
 
 // Pixel format conversion
@@ -219,46 +220,47 @@ uint32_t UncompressedId(DirectX::DDS_PIXELFORMAT* ddspf)
 }
 
 // Thumbnailer /////////////////////////////////////////////////////////////////
-bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
+KIO::ThumbnailResult DDSCreator::create(const KIO::ThumbnailRequest &request)
 {
     std::unique_ptr<uchar[]> uncompressed_data = nullptr;
     QImage::Format out_format = QImage::Format_Invalid;
     PFN_Convert convert = nullptr; // function to convert uncompressed_data to QImage format
     std::size_t out_pitch = 0;
     
+    QString path = request.url().toLocalFile();
     QFile file_dds(path);
     if (!file_dds.open(QIODevice::ReadOnly)) {
         qDebug() << "[DDS thumbnailer]" << path << ": could not open file";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     
     // Verify the type of file
     unsigned int file_code = 0;
     if (file_dds.read(reinterpret_cast<char*>(&file_code), 4) != 4) {
         qDebug() << "[DDS thumbnailer]" << path << ": missing file type";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     if (FOURCC_DDS != file_code) {
         qDebug() << "[DDS thumbnailer]" << path << ": not a DDS";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     
     // Read DDS header
     DirectX::DDS_HEADER header;
     if (file_dds.read(reinterpret_cast<char*>(&header), sizeof(header)) != sizeof(header)) {
         qDebug() << "[DDS thumbnailer]" << path << ": missing header";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     
     std::size_t dds_width = header.width;
     std::size_t dds_height = header.height;
     if (dds_height == 0 || dds_width == 0) {
         qDebug() << "[DDS thumbnailer]" << path << ": invalid size (0x0)";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     if (dds_height > 16384 || dds_width > 16384) {
         qDebug() << "[DDS thumbnailer]" << path << ": invalid size (" << dds_width << "x" << dds_height << ")";
-        return false;
+        return KIO::ThumbnailResult::fail();
     }
     
     if (header.ddspf.flags & DDS_FOURCC) { // Compressed format
@@ -287,17 +289,17 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         case FOURCC_DX10: // DX10 extended header
             if (file_dds.read(reinterpret_cast<char*>(&header10), sizeof(header10)) != sizeof(header10)) {
                 qDebug() << "[DDS thumbnailer]" << path << ": missing DX10 header";
-                return false;
+                return KIO::ThumbnailResult::fail();
             }
             if (header10.resourceDimension != DirectX::DDS_DIMENSION_TEXTURE2D) {
                 // only 2D texture supported
                 qDebug() << "[DDS thumbnailer]" << path << ": not supported (2d texture only)";
-                return false;
+                return KIO::ThumbnailResult::fail();
             }
             if (header10.miscFlag & 0x4) {
                 // array of texture not supported
                 qDebug() << "[DDS thumbnailer]" << path << ": not supported (array)";
-                return false;
+                return KIO::ThumbnailResult::fail();
             }
             
             switch (header10.dxgiFormat) {
@@ -339,11 +341,11 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         if (bc_codec == 0) {
             qDebug() << "[DDS thumbnailer]" << path << ": unknown bc type: " << bc_codec << " "
             << header.ddspf.fourCC << " " << header10.dxgiFormat;
-            return false;
+            return KIO::ThumbnailResult::fail();
         }
         if (bc_codec == 6) { // TODO: support for bc6
             qDebug() << "[DDS thumbnailer]" << path << ": not supported (bc6)";
-            return false;
+            return KIO::ThumbnailResult::fail();
         }
         
         std::size_t block_size = bc_table[bc_codec].block_size;
@@ -361,7 +363,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         
         if (file_dds.read(reinterpret_cast<char*>(compressed_data.get()), compressed_size) != compressed_size) {
             qDebug() << "[DDS thumbnailer]" << path << ": missing image data";
-            return false;
+            return KIO::ThumbnailResult::fail();
         }
         file_dds.close();
         
@@ -382,7 +384,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         uint32_t id = UncompressedId(&header.ddspf);
         if (id == static_cast<uint32_t>(-1)) {
             qDebug() << "[DDS thumbnailer]" << path << ": unsupported uncompressed format";
-            return false;
+            return KIO::ThumbnailResult::fail();
         }
         
         convert = uncompressed_table[id].Convert;
@@ -396,22 +398,19 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         
         if (file_dds.read(reinterpret_cast<char*>(uncompressed_data.get()), img_size) != img_size) {
             qDebug() << "[DDS thumbnailer]" << path << ": missing image data";
-            return false;
+            return KIO::ThumbnailResult::fail();
         }
         file_dds.close();
     }
     
     // fill the QImage
-    img = QImage(dds_width, dds_height, out_format);
+    QImage img = QImage(dds_width, dds_height, out_format);
     for (std::size_t i = 0; i < dds_height; ++i) {
         uchar* line = img.scanLine(i);
         convert(line, &uncompressed_data[i*out_pitch], dds_width);
     }
     
-    return true;
+    return KIO::ThumbnailResult::pass(img);
 }
 
-ThumbCreator::Flags DDSCreator::flags() const
-{
-    return ThumbCreator::None;
-}
+#include "thumbnailer_dds10.moc"

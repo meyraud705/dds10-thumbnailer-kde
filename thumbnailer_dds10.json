@@ -1,0 +1,9 @@
+{
+  "CacheThumbnail": true,
+  "KPlugin": {
+      "MimeTypes": [
+          "image/x-dds"
+      ],
+      "Name": "Direct Draw Surface (DDS) DX10 (dds10-thumbnailer-kde)"
+  }
+}
