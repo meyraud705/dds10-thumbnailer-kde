@@ -261,7 +261,7 @@ bool DDSCreator::create(const QString &path, int width, int height, QImage &img)
         return false;
     }
     
-    if (header.ddspf.flags == DDS_FOURCC) { // Compressed format
+    if (header.ddspf.flags & DDS_FOURCC) { // Compressed format
         unsigned int bc_codec = 0;
         DirectX::DDS_HEADER_DXT10 header10 = {DXGI_FORMAT_UNKNOWN};
         switch (header.ddspf.fourCC) {
