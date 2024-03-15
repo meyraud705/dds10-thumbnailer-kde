@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.0)
 project(dds10-thumbnailer-kde)
 
-set(QT_MIN_VERSION "5.15.2")
+set(QT_MIN_VERSION "6.0.0")
 set(KF5_MIN_VERSION "5.100.0")
 set(KDE_COMPILERSETTINGS_LEVEL "5.100")
 set(CMAKE_CXX_STANDARD 17)
@@ -13,16 +13,12 @@ set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
 
 include(FeatureSummary)
 #include(WriteBasicConfigVersionFile)
-include(KDEInstallDirs)
+include(KDEInstallDirs6)
 include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 
-find_package(Qt${QT_MAJOR_VERSION} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Gui)
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS KIO)
+find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Gui)
+find_package(KF6 ${KF5_MIN_VERSION} REQUIRED COMPONENTS KIO)
 
-set(dds10thumbnail_SRCS thumbnailer_dds10.cpp)
-add_library(dds10thumbnail MODULE ${dds10thumbnail_SRCS})
-target_link_libraries(dds10thumbnail PRIVATE KF5::KIOGui Qt::Gui)
-
-install(TARGETS dds10thumbnail DESTINATION ${PLUGIN_INSTALL_DIR})
-install(FILES thumbnailer_dds10.desktop DESTINATION ${SERVICES_INSTALL_DIR})
+kcoreaddons_add_plugin(dds10thumbnail SOURCES thumbnailer_dds10.cpp INSTALL_NAMESPACE "kf6/thumbcreator")
+target_link_libraries(dds10thumbnail PRIVATE KF6::KIOGui Qt::Gui)
